@@ -1,8 +1,10 @@
  'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 
 export default function AuthPage() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLogin, setIsLogin] = useState(true)
@@ -13,8 +15,8 @@ export default function AuthPage() {
   async function handleSubmit() {
     if (isLogin) {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) setMessage(error.message)
-      else setMessage('Logged in! ✅')
+     if (error) setMessage(error.message)
+      else router.push('/dashboard')
     } else {
       const { error } = await supabase.auth.signUp({ email, password })
       if (error) setMessage(error.message)
@@ -56,6 +58,9 @@ export default function AuthPage() {
           {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Login'}
         </p>
       </div>
+      <p className="text-center text-gray-300 text-xs mt-6">
+          Designed & Built by <span className="text-blue-400 font-semibold">M. Samuel</span> · 2026
+        </p>
     </main>
   )
 }
