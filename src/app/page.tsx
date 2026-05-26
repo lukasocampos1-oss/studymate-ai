@@ -4,6 +4,8 @@ import { useEffect, useState, useRef } from 'react'
 export default function Home() {
   const [scrollY, setScrollY] = useState(0)
   const [visible, setVisible] = useState<Record<string, boolean>>({})
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [showInstall, setShowInstall] = useState(false)
   const featuresRef = useRef<HTMLDivElement>(null)
   const stepsRef = useRef<HTMLDivElement>(null)
   const ctaRef = useRef<HTMLDivElement>(null)
@@ -13,6 +15,16 @@ export default function Home() {
     const handleScroll = () => setScrollY(window.scrollY)
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault()
+      setDeferredPrompt(e)
+      setShowInstall(true)
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
   }, [])
 
   useEffect(() => {
@@ -35,6 +47,14 @@ export default function Home() {
     return () => observers.forEach(o => o.disconnect())
   }, [])
 
+  async function handleInstall() {
+    if (!deferredPrompt) return
+    deferredPrompt.prompt()
+    const { outcome } = await deferredPrompt.userChoice
+    if (outcome === 'accepted') setShowInstall(false)
+    setDeferredPrompt(null)
+  }
+
   const navScrolled = scrollY > 40
 
   return (
@@ -43,16 +63,12 @@ export default function Home() {
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
-
-        /* Nav */
         .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; transition: all 0.4s ease; padding: 1.4rem 2.5rem; display: flex; justify-content: space-between; align-items: center; }
         .nav.scrolled { background: rgba(6,6,16,0.9); backdrop-filter: blur(24px); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 1rem 2.5rem; }
         .nav-logo { font-size: 1.3rem; font-weight: 800; color: #fff; letter-spacing: -0.5px; text-decoration: none; }
         .nav-logo span { background: linear-gradient(135deg, #818cf8, #c084fc, #67e8f9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .nav-btn { background: rgba(129,140,248,0.12); color: #a5b4fc; border: 1px solid rgba(129,140,248,0.25); padding: 0.6rem 1.5rem; border-radius: 100px; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: all 0.25s; text-decoration: none; font-family: inherit; }
         .nav-btn:hover { background: rgba(129,140,248,0.22); border-color: rgba(129,140,248,0.45); color: #fff; transform: translateY(-1px); }
-
-        /* Hero */
         .hero { min-height: 100vh; background: #060610; display: flex; flex-direction: column; position: relative; overflow: hidden; }
         .hero-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(99,102,241,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.06) 1px, transparent 1px); background-size: 60px 60px; animation: gridPulse 8s ease-in-out infinite; }
         @keyframes gridPulse { 0%,100%{opacity:0.6} 50%{opacity:1} }
@@ -62,8 +78,6 @@ export default function Home() {
         .orb-3 { width: 350px; height: 350px; background: radial-gradient(circle, rgba(6,182,212,0.14) 0%, transparent 65%); top: 35%; left: 55%; animation-duration: 16s; animation-delay: -8s; }
         .orb-4 { width: 250px; height: 250px; background: radial-gradient(circle, rgba(192,132,252,0.12) 0%, transparent 65%); top: 60%; left: 10%; animation-duration: 11s; animation-delay: -2s; }
         @keyframes orbFloat { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(30px,40px) scale(1.08)} }
-
-        /* Hero content */
         .hero-content { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 9rem 1.5rem 5rem; }
         .hero-badge { display: inline-flex; align-items: center; gap: 0.6rem; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.22); border-radius: 100px; padding: 0.45rem 1.2rem; font-size: 0.8rem; color: #a5b4fc; font-weight: 500; margin-bottom: 2.2rem; letter-spacing: 0.04em; animation: badgePulse 3s ease-in-out infinite; }
         @keyframes badgePulse { 0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,0)} 50%{box-shadow:0 0 20px 2px rgba(99,102,241,0.15)} }
@@ -75,27 +89,23 @@ export default function Home() {
         @keyframes heroFadeUp { from{opacity:0;transform:translateY(50px)} to{opacity:1;transform:translateY(0)} }
         .hero-sub { font-size: clamp(1rem, 2.2vw, 1.25rem); color: rgba(255,255,255,0.42); max-width: 560px; line-height: 1.8; margin-bottom: 2.8rem; animation: heroFadeUp 1s cubic-bezier(0.22,1,0.36,1) 0.15s both; }
         .hero-cta-row { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-bottom: 5rem; animation: heroFadeUp 1s cubic-bezier(0.22,1,0.36,1) 0.3s both; }
-        .cta-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; border: none; padding: 1rem 2.4rem; border-radius: 100px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.3s; text-decoration: none; font-family: inherit; box-shadow: 0 8px 30px rgba(99,102,241,0.4), 0 0 0 0 rgba(99,102,241,0.3); }
-        .cta-primary:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 16px 50px rgba(99,102,241,0.5), 0 0 0 6px rgba(99,102,241,0.1); }
+        .cta-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; border: none; padding: 1rem 2.4rem; border-radius: 100px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.3s; text-decoration: none; font-family: inherit; box-shadow: 0 8px 30px rgba(99,102,241,0.4); }
+        .cta-primary:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 16px 50px rgba(99,102,241,0.5); }
         .cta-secondary { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.75); border: 1px solid rgba(255,255,255,0.1); padding: 1rem 2.4rem; border-radius: 100px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s; text-decoration: none; font-family: inherit; }
         .cta-secondary:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); transform: translateY(-2px); }
-
-        /* Stats */
+        .install-btn { background: rgba(255,255,255,0.06); color: #a5b4fc; border: 1px solid rgba(129,140,248,0.3); padding: 1rem 2.4rem; border-radius: 100px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s; font-family: inherit; }
+        .install-btn:hover { background: rgba(129,140,248,0.15); border-color: rgba(129,140,248,0.5); transform: translateY(-2px); }
         .stats-bar { position: relative; z-index: 1; display: flex; justify-content: center; border-top: 1px solid rgba(255,255,255,0.05); }
         .stat-item { flex: 1; max-width: 220px; text-align: center; padding: 2rem 1rem; border-right: 1px solid rgba(255,255,255,0.05); transition: background 0.3s; }
         .stat-item:last-child { border-right: none; }
         .stat-item:hover { background: rgba(99,102,241,0.04); }
         .stat-num { font-size: 2rem; font-weight: 900; background: linear-gradient(135deg, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .stat-label { font-size: 0.78rem; color: rgba(255,255,255,0.3); margin-top: 0.3rem; font-weight: 500; }
-
-        /* Dark sections */
         .dark-section { background: #060610; }
         .section-inner { max-width: 1080px; margin: 0 auto; padding: 7rem 1.5rem; }
         .section-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #818cf8; margin-bottom: 0.9rem; }
         .section-title { font-size: clamp(1.9rem, 4vw, 3rem); font-weight: 900; color: #fff; letter-spacing: -1.5px; line-height: 1.15; margin-bottom: 1rem; }
         .section-sub { font-size: 1rem; color: rgba(255,255,255,0.38); max-width: 480px; line-height: 1.75; }
-
-        /* Feature cards */
         .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.2rem; margin-top: 3.5rem; }
         .feature-card { background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.07); border-radius: 20px; padding: 2rem; transition: all 0.4s cubic-bezier(0.22,1,0.36,1); position: relative; overflow: hidden; }
         .feature-card::before { content:''; position:absolute; inset:0; background: linear-gradient(135deg, rgba(99,102,241,0.06), transparent); opacity:0; transition: opacity 0.4s; border-radius: 20px; }
@@ -104,24 +114,18 @@ export default function Home() {
         .feature-icon { width: 46px; height: 46px; border-radius: 14px; background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.2)); border: 1px solid rgba(99,102,241,0.2); display: flex; align-items: center; justify-content: center; margin-bottom: 1.2rem; font-size: 1.4rem; }
         .feature-title { font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 0.55rem; }
         .feature-desc { font-size: 0.87rem; color: rgba(255,255,255,0.38); line-height: 1.7; }
-
-        /* Steps */
         .steps-section { background: #0c0c1a; border-top: 1px solid rgba(255,255,255,0.04); border-bottom: 1px solid rgba(255,255,255,0.04); }
         .steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2.5rem; margin-top: 3.5rem; }
         .step-card { position: relative; padding: 2rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 20px; transition: all 0.4s cubic-bezier(0.22,1,0.36,1); }
         .step-card:hover { border-color: rgba(129,140,248,0.25); transform: translateY(-5px); box-shadow: 0 16px 50px rgba(0,0,0,0.4), 0 0 30px rgba(99,102,241,0.08); }
-        .step-num { font-size: 3.5rem; font-weight: 900; background: linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.25)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1; margin-bottom: 1rem; font-variant-numeric: tabular-nums; }
+        .step-num { font-size: 3.5rem; font-weight: 900; background: linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.25)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1; margin-bottom: 1rem; }
         .step-title { font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 0.7rem; }
         .step-desc { font-size: 0.88rem; color: rgba(255,255,255,0.38); line-height: 1.75; }
-
-        /* CTA */
         .cta-section { background: #060610; padding: 8rem 1.5rem; text-align: center; position: relative; overflow: hidden; }
         .cta-orb { position: absolute; width: 700px; height: 500px; border-radius: 50%; background: radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 65%); top: 50%; left: 50%; transform: translate(-50%,-50%); pointer-events: none; animation: ctaOrbPulse 6s ease-in-out infinite; }
         @keyframes ctaOrbPulse { 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-50%,-50%) scale(1.08)} }
         .cta-title { font-size: clamp(2.2rem, 5.5vw, 4rem); font-weight: 900; color: #fff; letter-spacing: -2px; line-height: 1.08; margin-bottom: 1.2rem; position: relative; z-index: 1; }
         .cta-sub { font-size: 1.05rem; color: rgba(255,255,255,0.35); margin-bottom: 2.8rem; position: relative; z-index: 1; }
-
-        /* Developer */
         .dev-section { background: #0c0c1a; border-top: 1px solid rgba(255,255,255,0.04); padding: 6rem 1.5rem; }
         .dev-inner { max-width: 660px; margin: 0 auto; text-align: center; }
         .dev-avatar { width: 88px; height: 88px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4); display: flex; align-items: center; justify-content: center; font-size: 2.2rem; font-weight: 900; color: #fff; margin: 0 auto 1.4rem; box-shadow: 0 0 0 4px rgba(99,102,241,0.15), 0 0 50px rgba(99,102,241,0.3); animation: avatarGlow 4s ease-in-out infinite; }
@@ -132,13 +136,9 @@ export default function Home() {
         .tech-pills { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
         .tech-pill { background: rgba(99,102,241,0.08); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.2); padding: 0.38rem 1rem; border-radius: 100px; font-size: 0.78rem; font-weight: 600; transition: all 0.25s; }
         .tech-pill:hover { background: rgba(99,102,241,0.16); border-color: rgba(99,102,241,0.4); transform: translateY(-2px); }
-
-        /* Footer */
         .footer { background: #060610; border-top: 1px solid rgba(255,255,255,0.04); padding: 2rem 1.5rem; text-align: center; }
         .footer p { font-size: 0.8rem; color: rgba(255,255,255,0.18); }
         .footer span { color: #818cf8; font-weight: 600; }
-
-        /* Animations */
         .fade-up { opacity: 0; transform: translateY(35px); transition: all 0.8s cubic-bezier(0.22,1,0.36,1); }
         .fade-up.visible { opacity: 1; transform: translateY(0); }
         .delay-1 { transition-delay: 0.1s; }
@@ -147,8 +147,7 @@ export default function Home() {
         .delay-4 { transition-delay: 0.4s; }
         .delay-5 { transition-delay: 0.5s; }
         .delay-6 { transition-delay: 0.6s; }
-
-        /* Responsive */
+        @keyframes floatIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
         @media (max-width: 640px) {
           .stats-bar { flex-wrap: wrap; }
           .stat-item { min-width: 50%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.05); }
@@ -187,6 +186,11 @@ export default function Home() {
           <div className="hero-cta-row">
             <a href="/auth" className="cta-primary">Start for free</a>
             <a href="#how" className="cta-secondary">See how it works</a>
+            {showInstall && (
+              <button onClick={handleInstall} className="install-btn">
+                📲 Install App
+              </button>
+            )}
           </div>
         </div>
 
@@ -289,6 +293,31 @@ export default function Home() {
       <footer className="footer">
         <p>Designed and Built by <span>M. Samuel</span> · 2026</p>
       </footer>
+
+      {/* FLOATING INSTALL BUTTON */}
+      {showInstall && (
+        <div style={{
+          position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 999,
+          animation: 'floatIn 0.5s ease both'
+        }}>
+          <button
+            onClick={handleInstall}
+            style={{
+              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+              color: '#fff', border: 'none',
+              padding: '1rem 1.8rem',
+              borderRadius: '100px',
+              fontSize: '0.95rem', fontWeight: '700',
+              cursor: 'pointer',
+              boxShadow: '0 8px 30px rgba(99,102,241,0.5)',
+              fontFamily: 'inherit',
+              display: 'flex', alignItems: 'center', gap: '0.5rem'
+            }}
+          >
+            📲 Install StudyMate AI
+          </button>
+        </div>
+      )}
 
     </main>
   )
