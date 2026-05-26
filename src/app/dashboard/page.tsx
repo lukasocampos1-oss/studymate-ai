@@ -130,38 +130,67 @@ export default function Dashboard() {
   }
 
   async function generateQuiz() {
-    if (inputMode === 'text' && !notes.trim()) {
-      setError('Please paste some notes before generating a quiz.')
-      return
-    }
-    if (inputMode === 'file' && !file) {
-      setError('Please upload a file before generating a quiz.')
-      return
-    }
-    setLoading(true); setQuestions([]); setQuizDone(false); setError('')
+    if (inputMode === 'text' && !notes.trim()) return
+    if (inputMode === 'file' && !file) return
+
+    setLoading(true)
+    setQuestions([])
+    setQuizDone(false)
 
     try {
       let res
+
       if (inputMode === 'file' && file) {
         const formData = new FormData()
         formData.append('file', file)
-        res = await fetch('/api/generate-quiz', { method: 'POST', body: formData })
+        res = await fetch('/api/generate-quiz', {
+          method: 'POST',
+          body: formData
+        })
       } else {
         res = await fetch('/api/generate-quiz', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ notes, difficulty })
+          body: JSON.stringify({ notes })
         })
       }
 
-      const data = await res.json()
+      const reader = res.body!.getReader()
+      const decoder = new TextDecoder()
+      let fullText = ''
 
-      if (data.error) {
-        setError(data.error)
-        setLoading(false)
-        return
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value)
+        const lines = chunk.split('\n').filter(l => l.startsWith('data: '))
+
+        for (const line of lines) {
+          const data = line.replace('data: ', '')
+          if (data === '[DONE]') break
+          try {
+            const parsed = JSON.parse(data)
+            if (parsed.error) {
+              alert('Error: ' + parsed.error)
+              setLoading(false)
+              return
+            }
+            fullText += parsed.text || ''
+            // Parse and update questions in real time
+            const parsed2 = parseQuiz(fullText)
+            if (parsed2.length > 0) setQuestions(parsed2)
+          } catch {}
+        }
       }
 
+      const final = parseQuiz(fullText)
+      setQuestions(final)
+    } catch (e) {
+      alert('Error: ' + String(e))
+    }
+    setLoading(false)
+  }
       const parsed = parseQuiz(data.quiz)
       if (parsed.length === 0) {
         setError('Could not generate questions from this content. Try adding more detailed notes.')
