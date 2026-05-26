@@ -272,7 +272,7 @@ export default function Home() {
         <div className={`dev-inner fade-up ${visible.dev ? 'visible' : ''}`}>
           <p style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#06b6d4', marginBottom: '1.8rem' }}>The Developer</p>
           <div className="dev-avatar">M</div>
-          <div className="dev-name">Mwangi Samuel</div>
+          <div className="dev-name">M.Samuel</div>
           <div className="dev-role">Full Stack Developer · IT Student</div>
           <p className="dev-bio">
             Built StudyMate AI entirely from scratch — database architecture, AI integration, authentication, file processing, and deployment. Passionate about building tools that make learning faster and more effective for everyone.
