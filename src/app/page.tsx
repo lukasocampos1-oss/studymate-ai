@@ -1,108 +1,295 @@
 'use client'
-import { useState } from 'react'
-import { createClient } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState, useRef } from 'react'
 
-export default function AuthPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [isLogin, setIsLogin] = useState(true)
-  const [message, setMessage] = useState('')
-  const [loading, setLoading] = useState(false)
-  const supabase = createClient()
-  const router = useRouter()
+export default function Home() {
+  const [scrollY, setScrollY] = useState(0)
+  const [visible, setVisible] = useState<Record<string, boolean>>({})
+  const featuresRef = useRef<HTMLDivElement>(null)
+  const stepsRef = useRef<HTMLDivElement>(null)
+  const ctaRef = useRef<HTMLDivElement>(null)
+  const devRef = useRef<HTMLDivElement>(null)
 
-  async function handleAuth() {
-    setLoading(true)
-    setMessage('')
-    if (isLogin) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) setMessage(error.message)
-      else router.push('/dashboard')
-    } else {
-      const { error } = await supabase.auth.signUp({ email, password })
-      if (error) setMessage(error.message)
-      else setMessage('Account created! You can now log in.')
-    }
-    setLoading(false)
-  }
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY)
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  useEffect(() => {
+    const observers: IntersectionObserver[] = []
+    const sections = [
+      { ref: featuresRef, key: 'features' },
+      { ref: stepsRef, key: 'steps' },
+      { ref: ctaRef, key: 'cta' },
+      { ref: devRef, key: 'dev' },
+    ]
+    sections.forEach(({ ref, key }) => {
+      if (!ref.current) return
+      const obs = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) setVisible(prev => ({ ...prev, [key]: true })) },
+        { threshold: 0.1 }
+      )
+      obs.observe(ref.current)
+      observers.push(obs)
+    })
+    return () => observers.forEach(o => o.disconnect())
+  }, [])
+
+  const navScrolled = scrollY > 40
 
   return (
-    <main style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #eff6ff 0%, #f8fafc 50%, #e0f2fe 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Segoe UI', sans-serif", padding: '1rem' }}>
+    <main style={{ margin: 0, padding: 0, fontFamily: "'Inter', 'Segoe UI', sans-serif", overflowX: 'hidden', background: '#060610' }}>
       <style>{`
-        * { box-sizing: border-box; }
-        .input-field { width: 100%; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 0.85rem 1rem; font-size: 0.95rem; font-family: inherit; color: #0f172a; background: #f8faff; transition: all 0.2s; outline: none; }
-        .input-field:focus { border-color: #93c5fd; background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-        .input-field::placeholder { color: #94a3b8; }
-        .main-btn { width: 100%; padding: 0.9rem; background: linear-gradient(135deg, #2563eb, #0ea5e9); color: #fff; border: none; border-radius: 12px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: inherit; box-shadow: 0 4px 20px rgba(37,99,235,0.3); }
-        .main-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 25px rgba(37,99,235,0.4); }
-        .main-btn:active { transform: scale(0.99); }
-        .main-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-        .toggle-btn { background: none; border: none; color: #2563eb; font-weight: 700; cursor: pointer; font-family: inherit; font-size: 0.9rem; text-decoration: underline; }
-        .toggle-btn:hover { color: #1d4ed8; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        /* Nav */
+        .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; transition: all 0.4s ease; padding: 1.4rem 2.5rem; display: flex; justify-content: space-between; align-items: center; }
+        .nav.scrolled { background: rgba(6,6,16,0.9); backdrop-filter: blur(24px); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 1rem 2.5rem; }
+        .nav-logo { font-size: 1.3rem; font-weight: 800; color: #fff; letter-spacing: -0.5px; text-decoration: none; }
+        .nav-logo span { background: linear-gradient(135deg, #818cf8, #c084fc, #67e8f9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .nav-btn { background: rgba(129,140,248,0.12); color: #a5b4fc; border: 1px solid rgba(129,140,248,0.25); padding: 0.6rem 1.5rem; border-radius: 100px; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: all 0.25s; text-decoration: none; font-family: inherit; }
+        .nav-btn:hover { background: rgba(129,140,248,0.22); border-color: rgba(129,140,248,0.45); color: #fff; transform: translateY(-1px); }
+
+        /* Hero */
+        .hero { min-height: 100vh; background: #060610; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+        .hero-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(99,102,241,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.06) 1px, transparent 1px); background-size: 60px 60px; animation: gridPulse 8s ease-in-out infinite; }
+        @keyframes gridPulse { 0%,100%{opacity:0.6} 50%{opacity:1} }
+        .orb { position: absolute; border-radius: 50%; pointer-events: none; animation: orbFloat 12s ease-in-out infinite alternate; }
+        .orb-1 { width: 700px; height: 700px; background: radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 65%); top: -200px; left: -150px; animation-duration: 14s; }
+        .orb-2 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 65%); bottom: -100px; right: -100px; animation-duration: 10s; animation-delay: -4s; }
+        .orb-3 { width: 350px; height: 350px; background: radial-gradient(circle, rgba(6,182,212,0.14) 0%, transparent 65%); top: 35%; left: 55%; animation-duration: 16s; animation-delay: -8s; }
+        .orb-4 { width: 250px; height: 250px; background: radial-gradient(circle, rgba(192,132,252,0.12) 0%, transparent 65%); top: 60%; left: 10%; animation-duration: 11s; animation-delay: -2s; }
+        @keyframes orbFloat { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(30px,40px) scale(1.08)} }
+
+        /* Hero content */
+        .hero-content { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 9rem 1.5rem 5rem; }
+        .hero-badge { display: inline-flex; align-items: center; gap: 0.6rem; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.22); border-radius: 100px; padding: 0.45rem 1.2rem; font-size: 0.8rem; color: #a5b4fc; font-weight: 500; margin-bottom: 2.2rem; letter-spacing: 0.04em; animation: badgePulse 3s ease-in-out infinite; }
+        @keyframes badgePulse { 0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,0)} 50%{box-shadow:0 0 20px 2px rgba(99,102,241,0.15)} }
+        .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #818cf8; animation: dotPulse 2s ease-in-out infinite; }
+        @keyframes dotPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.7)} }
+        .hero-title { font-size: clamp(2.8rem, 7.5vw, 6rem); font-weight: 900; color: #fff; line-height: 1.04; letter-spacing: -2.5px; margin-bottom: 1.6rem; max-width: 820px; animation: heroFadeUp 1s cubic-bezier(0.22,1,0.36,1) both; }
+        .hero-title-grad { background: linear-gradient(135deg, #818cf8 0%, #c084fc 40%, #67e8f9 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-size: 200% auto; animation: gradShift 6s ease infinite; }
+        @keyframes gradShift { 0%,100%{background-position:0% center} 50%{background-position:100% center} }
+        @keyframes heroFadeUp { from{opacity:0;transform:translateY(50px)} to{opacity:1;transform:translateY(0)} }
+        .hero-sub { font-size: clamp(1rem, 2.2vw, 1.25rem); color: rgba(255,255,255,0.42); max-width: 560px; line-height: 1.8; margin-bottom: 2.8rem; animation: heroFadeUp 1s cubic-bezier(0.22,1,0.36,1) 0.15s both; }
+        .hero-cta-row { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-bottom: 5rem; animation: heroFadeUp 1s cubic-bezier(0.22,1,0.36,1) 0.3s both; }
+        .cta-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; border: none; padding: 1rem 2.4rem; border-radius: 100px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.3s; text-decoration: none; font-family: inherit; box-shadow: 0 8px 30px rgba(99,102,241,0.4), 0 0 0 0 rgba(99,102,241,0.3); }
+        .cta-primary:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 16px 50px rgba(99,102,241,0.5), 0 0 0 6px rgba(99,102,241,0.1); }
+        .cta-secondary { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.75); border: 1px solid rgba(255,255,255,0.1); padding: 1rem 2.4rem; border-radius: 100px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s; text-decoration: none; font-family: inherit; }
+        .cta-secondary:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); transform: translateY(-2px); }
+
+        /* Stats */
+        .stats-bar { position: relative; z-index: 1; display: flex; justify-content: center; border-top: 1px solid rgba(255,255,255,0.05); }
+        .stat-item { flex: 1; max-width: 220px; text-align: center; padding: 2rem 1rem; border-right: 1px solid rgba(255,255,255,0.05); transition: background 0.3s; }
+        .stat-item:last-child { border-right: none; }
+        .stat-item:hover { background: rgba(99,102,241,0.04); }
+        .stat-num { font-size: 2rem; font-weight: 900; background: linear-gradient(135deg, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .stat-label { font-size: 0.78rem; color: rgba(255,255,255,0.3); margin-top: 0.3rem; font-weight: 500; }
+
+        /* Dark sections */
+        .dark-section { background: #060610; }
+        .section-inner { max-width: 1080px; margin: 0 auto; padding: 7rem 1.5rem; }
+        .section-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #818cf8; margin-bottom: 0.9rem; }
+        .section-title { font-size: clamp(1.9rem, 4vw, 3rem); font-weight: 900; color: #fff; letter-spacing: -1.5px; line-height: 1.15; margin-bottom: 1rem; }
+        .section-sub { font-size: 1rem; color: rgba(255,255,255,0.38); max-width: 480px; line-height: 1.75; }
+
+        /* Feature cards */
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.2rem; margin-top: 3.5rem; }
+        .feature-card { background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.07); border-radius: 20px; padding: 2rem; transition: all 0.4s cubic-bezier(0.22,1,0.36,1); position: relative; overflow: hidden; }
+        .feature-card::before { content:''; position:absolute; inset:0; background: linear-gradient(135deg, rgba(99,102,241,0.06), transparent); opacity:0; transition: opacity 0.4s; border-radius: 20px; }
+        .feature-card:hover { border-color: rgba(129,140,248,0.3); transform: translateY(-8px) scale(1.01); box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 40px rgba(99,102,241,0.1); }
+        .feature-card:hover::before { opacity: 1; }
+        .feature-icon { width: 46px; height: 46px; border-radius: 14px; background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.2)); border: 1px solid rgba(99,102,241,0.2); display: flex; align-items: center; justify-content: center; margin-bottom: 1.2rem; font-size: 1.4rem; }
+        .feature-title { font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 0.55rem; }
+        .feature-desc { font-size: 0.87rem; color: rgba(255,255,255,0.38); line-height: 1.7; }
+
+        /* Steps */
+        .steps-section { background: #0c0c1a; border-top: 1px solid rgba(255,255,255,0.04); border-bottom: 1px solid rgba(255,255,255,0.04); }
+        .steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2.5rem; margin-top: 3.5rem; }
+        .step-card { position: relative; padding: 2rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 20px; transition: all 0.4s cubic-bezier(0.22,1,0.36,1); }
+        .step-card:hover { border-color: rgba(129,140,248,0.25); transform: translateY(-5px); box-shadow: 0 16px 50px rgba(0,0,0,0.4), 0 0 30px rgba(99,102,241,0.08); }
+        .step-num { font-size: 3.5rem; font-weight: 900; background: linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.25)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1; margin-bottom: 1rem; font-variant-numeric: tabular-nums; }
+        .step-title { font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 0.7rem; }
+        .step-desc { font-size: 0.88rem; color: rgba(255,255,255,0.38); line-height: 1.75; }
+
+        /* CTA */
+        .cta-section { background: #060610; padding: 8rem 1.5rem; text-align: center; position: relative; overflow: hidden; }
+        .cta-orb { position: absolute; width: 700px; height: 500px; border-radius: 50%; background: radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 65%); top: 50%; left: 50%; transform: translate(-50%,-50%); pointer-events: none; animation: ctaOrbPulse 6s ease-in-out infinite; }
+        @keyframes ctaOrbPulse { 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-50%,-50%) scale(1.08)} }
+        .cta-title { font-size: clamp(2.2rem, 5.5vw, 4rem); font-weight: 900; color: #fff; letter-spacing: -2px; line-height: 1.08; margin-bottom: 1.2rem; position: relative; z-index: 1; }
+        .cta-sub { font-size: 1.05rem; color: rgba(255,255,255,0.35); margin-bottom: 2.8rem; position: relative; z-index: 1; }
+
+        /* Developer */
+        .dev-section { background: #0c0c1a; border-top: 1px solid rgba(255,255,255,0.04); padding: 6rem 1.5rem; }
+        .dev-inner { max-width: 660px; margin: 0 auto; text-align: center; }
+        .dev-avatar { width: 88px; height: 88px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4); display: flex; align-items: center; justify-content: center; font-size: 2.2rem; font-weight: 900; color: #fff; margin: 0 auto 1.4rem; box-shadow: 0 0 0 4px rgba(99,102,241,0.15), 0 0 50px rgba(99,102,241,0.3); animation: avatarGlow 4s ease-in-out infinite; }
+        @keyframes avatarGlow { 0%,100%{box-shadow:0 0 0 4px rgba(99,102,241,0.15),0 0 50px rgba(99,102,241,0.3)} 50%{box-shadow:0 0 0 8px rgba(99,102,241,0.1),0 0 80px rgba(99,102,241,0.4)} }
+        .dev-name { font-size: 1.7rem; font-weight: 900; color: #fff; letter-spacing: -0.8px; margin-bottom: 0.4rem; }
+        .dev-role { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; background: linear-gradient(135deg, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 1.4rem; }
+        .dev-bio { font-size: 0.95rem; color: rgba(255,255,255,0.38); line-height: 1.85; max-width: 460px; margin: 0 auto 2rem; }
+        .tech-pills { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
+        .tech-pill { background: rgba(99,102,241,0.08); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.2); padding: 0.38rem 1rem; border-radius: 100px; font-size: 0.78rem; font-weight: 600; transition: all 0.25s; }
+        .tech-pill:hover { background: rgba(99,102,241,0.16); border-color: rgba(99,102,241,0.4); transform: translateY(-2px); }
+
+        /* Footer */
+        .footer { background: #060610; border-top: 1px solid rgba(255,255,255,0.04); padding: 2rem 1.5rem; text-align: center; }
+        .footer p { font-size: 0.8rem; color: rgba(255,255,255,0.18); }
+        .footer span { color: #818cf8; font-weight: 600; }
+
+        /* Animations */
+        .fade-up { opacity: 0; transform: translateY(35px); transition: all 0.8s cubic-bezier(0.22,1,0.36,1); }
+        .fade-up.visible { opacity: 1; transform: translateY(0); }
+        .delay-1 { transition-delay: 0.1s; }
+        .delay-2 { transition-delay: 0.2s; }
+        .delay-3 { transition-delay: 0.3s; }
+        .delay-4 { transition-delay: 0.4s; }
+        .delay-5 { transition-delay: 0.5s; }
+        .delay-6 { transition-delay: 0.6s; }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+          .stats-bar { flex-wrap: wrap; }
+          .stat-item { min-width: 50%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.05); }
+          .nav { padding: 1rem 1.2rem; }
+          .nav.scrolled { padding: 0.8rem 1.2rem; }
+          .hero-title { letter-spacing: -1.5px; }
+        }
       `}</style>
 
-      <div style={{ width: '100%', maxWidth: '420px' }}>
+      {/* NAV */}
+      <nav className={`nav ${navScrolled ? 'scrolled' : ''}`}>
+        <a href="/" className="nav-logo">StudyMate <span>AI</span></a>
+        <a href="/auth" className="nav-btn">Get started</a>
+      </nav>
 
-        {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'linear-gradient(135deg,#2563eb,#0ea5e9)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem', margin: '0 auto 1rem', boxShadow: '0 8px 24px rgba(37,99,235,0.3)' }}>🎓</div>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1e40af', letterSpacing: '-0.3px', marginBottom: '0.3rem' }}>
-            StudyMate <span style={{ color: '#0ea5e9' }}>AI</span>
-          </h1>
-          <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Your AI-powered study platform</p>
-        </div>
+      {/* HERO */}
+      <section className="hero">
+        <div className="hero-grid" />
+        <div className="orb orb-1" />
+        <div className="orb orb-2" />
+        <div className="orb orb-3" />
+        <div className="orb orb-4" />
 
-        {/* Card */}
-        <div style={{ background: '#fff', borderRadius: '20px', padding: '2rem', boxShadow: '0 8px 40px rgba(37,99,235,0.1)', border: '1px solid #e2e8f0' }}>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.3rem' }}>
-            {isLogin ? 'Welcome back 👋' : 'Create your account'}
-          </h2>
-          <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
-            {isLogin ? 'Log in to access your quizzes' : 'Start studying smarter today'}
-          </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginBottom: '1.2rem' }}>
-            <input
-              className="input-field"
-              type="email"
-              placeholder="Email address"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleAuth()}
-            />
-            <input
-              className="input-field"
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleAuth()}
-            />
+        <div className="hero-content">
+          <div className="hero-badge">
+            <div className="badge-dot" />
+            AI-Powered Study Platform
           </div>
-
-          {message && (
-            <div style={{ background: message.includes('created') || message.includes('✅') ? '#f0fdf4' : '#fef2f2', border: `1px solid ${message.includes('created') || message.includes('✅') ? '#bbf7d0' : '#fecaca'}`, borderRadius: '10px', padding: '0.7rem 1rem', fontSize: '0.88rem', color: message.includes('created') || message.includes('✅') ? '#16a34a' : '#dc2626', marginBottom: '1rem' }}>
-              {message}
-            </div>
-          )}
-
-          <button onClick={handleAuth} disabled={loading} className="main-btn">
-            {loading ? '...' : isLogin ? 'Log in' : 'Create account'}
-          </button>
-
-          <p style={{ textAlign: 'center', fontSize: '0.88rem', color: '#94a3b8', marginTop: '1.2rem' }}>
-            {isLogin ? "Don't have an account? " : 'Already have an account? '}
-            <button className="toggle-btn" onClick={() => { setIsLogin(!isLogin); setMessage('') }}>
-              {isLogin ? 'Sign up free' : 'Log in'}
-            </button>
+          <h1 className="hero-title">
+            Turn your notes into<br />
+            <span className="hero-title-grad">exam-ready quizzes</span>
+          </h1>
+          <p className="hero-sub">
+            Upload your lecture notes, textbooks, or slides. Our AI instantly generates smart, personalized quizzes — so you retain more and score higher.
           </p>
+          <div className="hero-cta-row">
+            <a href="/auth" className="cta-primary">Start for free</a>
+            <a href="#how" className="cta-secondary">See how it works</a>
+          </div>
         </div>
 
-        <p style={{ textAlign: 'center', color: '#cbd5e1', fontSize: '0.78rem', marginTop: '1.5rem' }}>
-          Designed and Built by <span style={{ color: '#2563eb', fontWeight: 700 }}>M. Samuel</span> · 2026
-        </p>
-      </div>
+        <div className="stats-bar">
+          {[
+            { num: '10x', label: 'Faster than manual flashcards' },
+            { num: '3', label: 'File formats supported' },
+            { num: '100%', label: 'Free to get started' },
+            { num: 'AI', label: 'Adaptive question generation' },
+          ].map((s, i) => (
+            <div key={i} className="stat-item">
+              <div className="stat-num">{s.num}</div>
+              <div className="stat-label">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* FEATURES */}
+      <section className="dark-section">
+        <div className="section-inner" ref={featuresRef}>
+          <div className={`fade-up ${visible.features ? 'visible' : ''}`}>
+            <p className="section-label">Features</p>
+            <h2 className="section-title">Everything you need<br />to ace your exams</h2>
+            <p className="section-sub">Built for students who want results — not just another study app.</p>
+          </div>
+          <div className="features-grid">
+            {[
+              { icon: '🧠', title: 'Adaptive questions', desc: 'Short notes get 5 questions. Long documents get up to 15. The AI scales intelligently to your content.', d: 1 },
+              { icon: '📁', title: 'Multiple file formats', desc: 'Upload Word documents, PDFs, or plain text files. Or just paste your notes directly.', d: 2 },
+              { icon: '👁️', title: 'Hidden answers', desc: 'Test yourself first. Reveal the answer only when you are ready — simulating real exam conditions.', d: 3 },
+              { icon: '📊', title: 'Score tracking', desc: 'Mark each answer right or wrong and get an instant score with emoji feedback at the end.', d: 4 },
+              { icon: '📖', title: 'Quiz history', desc: 'Every quiz you generate is saved. Revisit and retake any past quiz at any time.', d: 5 },
+              { icon: '🔒', title: 'Private & secure', desc: 'Your notes and quizzes are completely private. Only you can access your account data.', d: 6 },
+            ].map((f, i) => (
+              <div key={i} className={`feature-card fade-up delay-${f.d} ${visible.features ? 'visible' : ''}`}>
+                <div className="feature-icon">{f.icon}</div>
+                <div className="feature-title">{f.title}</div>
+                <div className="feature-desc">{f.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section className="steps-section" id="how">
+        <div className="section-inner" ref={stepsRef}>
+          <div className={`fade-up ${visible.steps ? 'visible' : ''}`}>
+            <p className="section-label">How it works</p>
+            <h2 className="section-title">Three steps to<br />exam ready</h2>
+          </div>
+          <div className="steps-grid">
+            {[
+              { num: '01', title: 'Upload your notes', desc: 'Drop in any PDF, Word document, or paste your notes directly. Any subject, any format works.', d: 1 },
+              { num: '02', title: 'AI builds your quiz', desc: 'Our AI reads your content and crafts smart questions tailored exactly to what you need to learn.', d: 2 },
+              { num: '03', title: 'Test and track progress', desc: 'Answer questions, reveal answers on your terms, and watch your score improve every session.', d: 3 },
+            ].map((s, i) => (
+              <div key={i} className={`step-card fade-up delay-${s.d} ${visible.steps ? 'visible' : ''}`}>
+                <div className="step-num">{s.num}</div>
+                <div className="step-title">{s.title}</div>
+                <div className="step-desc">{s.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="cta-section" ref={ctaRef}>
+        <div className="cta-orb" />
+        <div className={`fade-up ${visible.cta ? 'visible' : ''}`}>
+          <h2 className="cta-title">Ready to study<br />smarter?</h2>
+          <p className="cta-sub">Join students already acing their exams with StudyMate AI.</p>
+          <a href="/auth" className="cta-primary" style={{ display: 'inline-block', position: 'relative', zIndex: 1 }}>
+            Get started for free
+          </a>
+        </div>
+      </section>
+
+      {/* DEVELOPER */}
+      <section className="dev-section" ref={devRef}>
+        <div className={`dev-inner fade-up ${visible.dev ? 'visible' : ''}`}>
+          <p style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#06b6d4', marginBottom: '1.8rem' }}>The Developer</p>
+          <div className="dev-avatar">M</div>
+          <div className="dev-name">Mwangi Samuel</div>
+          <div className="dev-role">Full Stack Developer · IT Student</div>
+          <p className="dev-bio">
+            Built StudyMate AI entirely from scratch — database architecture, AI integration, authentication, file processing, and deployment. Passionate about building tools that make learning faster and more effective for everyone.
+          </p>
+          <div className="tech-pills">
+            {['Next.js', 'React', 'TypeScript', 'Supabase', 'AI APIs', 'Vercel'].map((t, i) => (
+              <span key={i} className="tech-pill">{t}</span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="footer">
+        <p>Designed and Built by <span>M. Samuel</span> · 2026</p>
+      </footer>
+
     </main>
   )
 }
