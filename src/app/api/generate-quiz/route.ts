@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'deepseek/deepseek-v4-flash:free',
+        model: 'nvidia/nemotron-3-super-120b-a12b:free',
         max_tokens: 150 * questionCount,
         temperature: 0.3,
         stream: true,
